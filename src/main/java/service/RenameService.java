@@ -1,5 +1,9 @@
 package service;
 
+import com.drew.imaging.ImageMetadataReader;
+import com.drew.metadata.Metadata;
+import com.drew.metadata.exif.ExifSubIFDDirectory;
+
 import javax.imageio.ImageIO;
 import java.io.File;
 import java.io.IOException;
@@ -26,11 +30,24 @@ public class RenameService {
         createDirectory(renamedDir);
 
         BasicFileAttributes attr = Files.readAttributes(file, BasicFileAttributes.class);
+        LocalDateTime originalDate = LocalDateTime.now();
+
+        try {
+            Metadata metadata = ImageMetadataReader.readMetadata(file.toFile());
+
+            ExifSubIFDDirectory directory
+                    = metadata.getFirstDirectoryOfType(ExifSubIFDDirectory.class);
+            originalDate = directory.getDate(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL)
+                    .toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         LocalDateTime firstDate = LocalDateTime.ofInstant(attr.creationTime().toInstant(), ZoneId.systemDefault())
                 .isBefore(LocalDateTime.ofInstant(attr.lastModifiedTime().toInstant(), ZoneId.systemDefault())) ?
                 LocalDateTime.ofInstant(attr.creationTime().toInstant(), ZoneId.systemDefault()) :
                 LocalDateTime.ofInstant(attr.lastModifiedTime().toInstant(), ZoneId.systemDefault());
+        LocalDateTime lastDate = firstDate.isBefore(originalDate) ? firstDate : originalDate;
 
         String[] fileArray = file.toString().split("\\.");
         String extension = fileArray[fileArray.length - 1];
@@ -38,12 +55,12 @@ public class RenameService {
         File dirName = new File(
                 renamedDir.getAbsolutePath()
                         + "/"
-                        + firstDate.format(DateTimeFormatter.ofPattern("yyyy MMMM")));
+                        + lastDate.format(DateTimeFormatter.ofPattern("yyyy MMMM")));
 
         File filename = new File(
                 dirName.getAbsolutePath()
                         + "/"
-                        + firstDate.format(DateTimeFormatter.ofPattern("yyyy_MM_dd HH-mm-ss"))
+                        + lastDate.format(DateTimeFormatter.ofPattern("yyyy_MM_dd HH-mm-ss"))
                         + "."
                         + extension);
 
