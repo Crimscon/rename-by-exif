@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 
 public class RenameService {
 
-    private void renameFile(Path file) throws IOException {
+    private void renameFile(Path file, Boolean deleteFiles) throws IOException {
 
         if (ImageIO.read(file.toFile()) == null || file.toAbsolutePath().toString().contains("renamed")) {
             return;
@@ -43,16 +43,20 @@ public class RenameService {
         File filename = new File(
                 dirName.getAbsolutePath()
                         + "/"
-                        + firstDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH-mm"))
+                        + firstDate.format(DateTimeFormatter.ofPattern("yyyy_MM_dd HH-mm-ss"))
                         + "."
                         + extension);
 
         createDirectory(dirName);
 
-        if (!file.toFile().equals(filename))
+        if (!file.toFile().equals(filename)) {
             Files.copy(file, filename.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            if (deleteFiles) Files.delete(file);
+        }
 
-        System.out.println(file.getFileName() + " >>> " + filename.getName());
+        System.out.println(file.getFileName()
+                + (deleteFiles ? "(deleted)" : "")
+                + " >>> " + filename.getName());
     }
 
     private void createDirectory(File directory) {
@@ -65,13 +69,13 @@ public class RenameService {
         }
     }
 
-    public void renameAllFiles(String path) {
+    public void renameAllFiles(String path, Boolean deleteFiles) {
         try (Stream<Path> paths = Files.walk(Paths.get(path))) {
             paths
                     .filter(Files::isRegularFile)
                     .forEach(file -> {
                         try {
-                            renameFile(file);
+                            renameFile(file, deleteFiles);
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
