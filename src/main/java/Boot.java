@@ -38,7 +38,6 @@ public class Boot {
         System.out.println("Start");
 
         RenameService renameService = new RenameService();
-
         renameService.renameAllFiles(path.toString(), deleteFiles);
 
         System.out.println("End");
